@@ -11,6 +11,7 @@ Produce a coherent backward-thinking and forward-thinking analysis grounded in e
 - Forward-thinking proposal: **Predictive Model Auditing** (conceptual).
 - Notebook: design only (experiments described but not coded yet).
 - Dataset downloads are allowed later.
+- Final deliverable must be **4 pages total**: **2 pages backward-thinking** and **2 pages forward-thinking**.
 
 ## 3) Core Research Questions
 1. Why do architectural explanations fail to predict GNN success across graph families?
@@ -114,3 +115,4 @@ Produce a coherent backward-thinking and forward-thinking analysis grounded in e
 - Single coherent narrative connecting backward → forward.
 - Every key point tied to paper evidence.
 - Notebook plan is specific enough to implement later.
+- Final writeup constrained to **4 pages total**, split **2 pages per perspective**.
