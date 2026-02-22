@@ -1,5 +1,15 @@
+# Data / artifacts
 papers/
-L65_Practical_2026_proposed_by_c.ipynb
-L65_Practical_2026_no_run.ipynb
 tmp/
-.venv
+output/experiments/
+output/datasets/
+output/jupyter-notebook/output/
+
+# Local notebooks
+L65_Practical_2026_*.ipynb
+
+# Environment
+.venv/
+
+# OS files
+.DS_Store
