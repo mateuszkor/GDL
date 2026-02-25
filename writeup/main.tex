@@ -21,7 +21,9 @@ Graph Neural Networks (GNNs) often succeed on benchmark graphs yet fail on other
 % ----------------------------
 % Backward-thinking (2 pages)
 % ----------------------------
-\section*{Backward-thinking: Why this paper was needed}
+\section{Backward-thinking: Why this paper was needed}
+
+This analysis examines the paper ``Why Does Your Graph Neural Network Fail on Some Graphs? Insights from Exact Generalisation Error'' [citation]. The paper addresses the question why performance varies across graphs and derives an exact generalisation error framework in a transductive fixed design setting, using a signal processing lens that treats GNNs as graph filters. It positions exact generalisation error and alignment as the central quantity for explaining success and failure across architectures. This analysis uses the paper to ground the backward looking discussion, to identify the problem that led to producing this paper, to clarify the limits of prior explanations, and to motivate a forward looking diagnostic proposal. It then proposes a diagnostic tool and evaluates it on experiments, including synthetic sweeps and real dataset checks, in order to test its predictions. % [Source: Paper Abstract/Intro for exact generalisation error, alignment, filter view; Source: Ours for diagnostic tool and experiments]
 
 \subsection*{Problem setting}
 GNNs are a standard tool for graph-structured learning, yet performance varies drastically across graph families. This variability is surprising because many GNNs share similar expressivity bounds and are trained in comparable ways, but they still behave inconsistently across datasets. The field has historically explained failures with architectural narratives: over-smoothing in deep message passing, over-squashing under long-range dependencies, or limits of the 1-WL expressivity class. These explanations are useful, but they do not predict why two closely related GNNs can diverge sharply in practice. % [Source: Paper Abstract/Intro for variability + over-smoothing/over-squashing; Source: Background for expressivity/1-WL framing; Source: Ours for synthesis]
@@ -54,7 +56,7 @@ The historical focus on architectural fixes explains only part of the failure la
 % ----------------------------
 % Forward-thinking (2 pages)
 % ----------------------------
-\section*{Forward-thinking: Predictive Model Auditing}
+\section{Forward-thinking: Predictive Model Auditing}
 
 \subsection*{Proposal}
 A natural research direction is to operationalise the paper's insights as a \emph{pre-training diagnostic}: Predictive Model Auditing. The idea is to compute a failure risk score from graph-structural signals (e.g., homophily, spectral summaries, and feature-label alignment proxies) before any training occurs. This moves the field from post-hoc explanations toward pre-flight assessments of when a GNN is expected to generalise. % [Source: Ours (forward-looking proposal)]
@@ -69,6 +71,13 @@ The audit is not a single number that replaces training; rather, it is a set of 
   \item \textbf{Validation stage:} Stress-test predictions on controlled graph families to verify that the risk score correlates with actual failure rates.
 \end{enumerate}
 % [Source: Ours]
+
+\subsection*{Experimental design choices}
+I include GCN, GraphSAGE, GAT, GPRGNN, and MLP to span the major model families that appear in practice. GCN represents a standard low pass convolutional baseline, GraphSAGE provides a different aggregation rule, GAT represents attention based architectures, GPRGNN adds a learned spectral response that can emphasize a wider range of frequencies, and MLP provides a feature only baseline. This set allows me to test whether the diagnostic separates graph aware models from a graph agnostic model across diverse architectures. % [Source: Ours]
+
+I use a stress suite of synthetic families to test the diagnostic across controlled axes of variation. SBM with balanced and imbalanced communities provides direct control of homophily and class balance, LFR style graphs add more realistic community structure with tunable mixing, and degree skew graphs test robustness under heavy tailed degree distributions. These families cover homophily control, community realism, and degree heterogeneity in a way that a single generator cannot. % [Source: Ours]
+
+I define the audit score from homophily, a feature label alignment proxy, and a spectral summary such as lambda max. Homophily captures label smoothness, alignment measures how much label signal is represented in features, and the spectral term captures how the graph structure can affect filtering behavior. Combining them turns the diagnostic into a multi signal predictor rather than a restatement of homophily alone. % [Source: Ours]
 
 \subsection*{Empirical probes supporting the audit idea}
 I ran minimal experiments to test whether structural signals predict performance. These are intentionally small-scale, designed to validate directionality rather than to maximize accuracy. % [Source: Ours]
@@ -109,7 +118,7 @@ A next step is to build a standardized stress suite that varies homophily, degre
 \subsection*{Coherent closing}
 The backward-looking story reframes failure as misalignment; the forward-looking proposal makes that reframing actionable. Predictive model auditing is a direct bridge from theory to practice: it uses alignment and spectral signals to predict where GNNs will generalise and where they will fail, before expensive training begins. % [Source: Ours]
 
-\section*{References}
+\section{References}
 Ayday, N., Sabanayagam, M., \& Ghoshdastidar, D. (2025). \textit{Why Does Your Graph Neural Network Fail on Some Graphs? Insights from Exact Generalisation Error}.\newline
 Craven, M., et al. (1998). \textit{Cora}.\newline
 Giles, C. L., et al. (1998). \textit{CiteSeer}.\newline
