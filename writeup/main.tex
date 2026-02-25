@@ -77,6 +77,8 @@ I include GCN, GraphSAGE, GAT, GPRGNN, and MLP to span the major model families 
 
 I use a stress suite of synthetic families to test the diagnostic across controlled axes of variation. SBM with balanced and imbalanced communities provides direct control of homophily and class balance, LFR style graphs add more realistic community structure with tunable mixing, and degree skew graphs test robustness under heavy tailed degree distributions. These families cover homophily control, community realism, and degree heterogeneity in a way that a single generator cannot. % [Source: Ours]
 
+I add Squirrel as a real dataset because it is a widely used heterophily benchmark and it is discussed in the target paper. It provides a realistic setting where low pass biases can fail, which makes it a direct test of the diagnostic beyond homophilic benchmarks like Cora and CiteSeer. % [Source: Ours]
+
 I define the audit score from homophily, a feature label alignment proxy, and a spectral summary such as lambda max. Homophily captures label smoothness, alignment measures how much label signal is represented in features, and the spectral term captures how the graph structure can affect filtering behavior. Combining them turns the diagnostic into a multi signal predictor rather than a restatement of homophily alone. % [Source: Ours]
 
 \subsection*{Empirical probes supporting the audit idea}
