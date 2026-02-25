@@ -4,125 +4,158 @@
 \usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{caption}
 \setlength{\parskip}{0.2em}
 \setlength{\parindent}{0pt}
 
 \title{Exploratory Paper Analysis: Why Does Your Graph Neural Network Fail on Some Graphs?}
-\author{}
+\author{
+    Mateusz Korytkowski (mkk51) \\[0.5em]
+    \large MPhil in Advanced Computer Science \\
+    \large University of Cambridge
+}
 \date{}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Graph Neural Networks (GNNs) often succeed on benchmark graphs yet fail on others in ways that are not fully explained by architectural narratives such as over-smoothing or over-squashing. The target paper reframes this problem through exact generalisation error, showing that alignment between graph structure, node features, and labels is the key driver of when a model generalises. This write-up first traces the backward-thinking context that motivated this reframing and then proposes a forward-thinking direction: predictive model auditing as a pre-training diagnostic. I complement the proposal with minimal empirical probes (synthetic sweeps and two real datasets) that illustrate how homophily and feature-signal strength align with performance, supporting the audit idea. % [Source: Paper Abstract for failure/success, exact generalisation error, alignment, homophily; Source: Ours for predictive auditing + probes]
+Graph Neural Networks (GNNs) often succeed on benchmark graphs yet fail on others in ways that are not fully explained by architectural narratives such as over-smoothing or over-squashing. The target paper reframes this problem through exact generalisation error, showing that alignment between graph structure, node features, and labels is the key driver of when a model generalises \cite{ayday2025gnnfail}. This write-up first traces the backward-thinking context that motivated this reframing and then proposes a forward-thinking direction: predictive model auditing as a pre-training diagnostic. I complement the proposal with experiments on a synthetic stress suite and real datasets, including a heterophily benchmark, to illustrate how alignment signals track performance and to test the audit idea. % [Source: Paper Abstract for failure/success, exact generalisation error, alignment, homophily; Source: Ours for predictive auditing + probes]
 \end{abstract}
 
 % ----------------------------
 % Backward-thinking (2 pages)
 % ----------------------------
-\section{Backward-thinking: Why this paper was needed}
+\section{Backward-thinking.}
 
-This analysis examines the paper ``Why Does Your Graph Neural Network Fail on Some Graphs? Insights from Exact Generalisation Error'' [citation]. The paper addresses the question why performance varies across graphs and derives an exact generalisation error framework in a transductive fixed design setting, using a signal processing lens that treats GNNs as graph filters. It positions exact generalisation error and alignment as the central quantity for explaining success and failure across architectures. This analysis uses the paper to ground the backward looking discussion, to identify the problem that led to producing this paper, to clarify the limits of prior explanations, and to motivate a forward looking diagnostic proposal. It then proposes a diagnostic tool and evaluates it on experiments, including synthetic sweeps and real dataset checks, in order to test its predictions. % [Source: Paper Abstract/Intro for exact generalisation error, alignment, filter view; Source: Ours for diagnostic tool and experiments]
+This analysis examines the paper "Why Does Your Graph Neural Network Fail on Some Graphs? Insights from Exact Generalisation Error" \cite{ayday2025gnnfail}. The paper asks why GNN performance varies across graphs and proposes a principled explanation that links generalisation to alignment between graph structure and signal. This analysis uses the paper to ground the backward looking discussion, to identify the problem that led to producing this paper, to clarify the limits of prior explanations, and to motivate a forward looking diagnostic proposal. % [Source: Paper Abstract/Intro for exact generalisation error, alignment, filter view; Source: Ours for diagnostic tool and experiments]
 
-\subsection*{Problem setting}
-GNNs are a standard tool for graph-structured learning, yet performance varies drastically across graph families. This variability is surprising because many GNNs share similar expressivity bounds and are trained in comparable ways, but they still behave inconsistently across datasets. The field has historically explained failures with architectural narratives: over-smoothing in deep message passing, over-squashing under long-range dependencies, or limits of the 1-WL expressivity class. These explanations are useful, but they do not predict why two closely related GNNs can diverge sharply in practice. % [Source: Paper Abstract/Intro for variability + over-smoothing/over-squashing; Source: Background for expressivity/1-WL framing; Source: Ours for synthesis]
+\paragraph*{Problem setting.}
+GNNs are a standard tool for graph-structured learning, yet performance varies drastically across graph families. This variability is surprising because many GNNs share similar expressivity bounds and are trained in comparable ways, but they still behave inconsistently across datasets. The inconsistency appears even when evaluation protocols are similar, which suggests that properties of the graph and labels can dominate architectural differences. The field has historically explained failures with architectural narratives: over-smoothing in deep message passing, over-squashing under long-range dependencies, or limits of the 1-WL expressivity class. These explanations are useful, but they do not predict why two closely related GNNs can diverge sharply in practice \cite{ayday2025gnnfail}. That gap motivates a closer look at what existing theory can and cannot explain. % [Source: Paper Abstract/Intro for variability + over-smoothing/over-squashing; Source: Background for expressivity/1-WL framing; Source: Ours for synthesis]
 
-\subsection*{Limits of prior theory}
-The literature contains generalisation error bounds for GNNs, but they are often loose, tied to a single architecture, or too abstract to diagnose real failures. As a result, researchers have strong but fragmented stories: architectural limitations explain some trends, while empirical benchmarks suggest other trends. The missing link is a principled, model-agnostic quantity that explains when the graph structure helps and when it hurts. % [Source: Paper Abstract/Intro]
+\paragraph*{Limits of prior theory.}
+The literature contains generalisation error bounds for GNNs, but they are often loose, tied to a single architecture, or too abstract to diagnose real failures. As a result, researchers have strong but fragmented stories, as architectural limitations explain some trends, while empirical benchmarks suggest other trends. These bounds rarely translate into actionable diagnostics for practitioners deciding which model to use for a given dataset. The missing link is a principled, model-agnostic quantity that explains when the graph structure helps and when it hurts \cite{ayday2025gnnfail}. This missing link sets up the paper's reframing. % [Source: Paper Abstract/Intro]
 
-\subsection*{The paper's reframing}
-The paper addresses this gap by deriving an \emph{exact generalisation error} for a broad class of GNNs under a transductive, fixed-design setting. The key move is a signal-processing perspective: graph convolutions are interpreted as graph filters, and the alignment between the spectral structure of the graph and the signal in node features/labels becomes the decisive factor. This shifts the question from \emph{which architecture is best} to \emph{when does graph structure provide aligned signal that a GNN can exploit?} This reframing also connects spatial and spectral views: many architectures can be described by their frequency response, so failures can be traced to misaligned signal frequencies rather than to a specific model family. % [Source: Paper Abstract + Sections 2--3]
+\paragraph*{The paper's reframing.}
+The paper addresses this gap by deriving an \emph{exact generalisation error} for a broad class of GNNs under a transductive, fixed-design setting. The key move is a signal-processing perspective where graph convolutions are interpreted as graph filters, and the alignment between the spectral structure of the graph and the signal in node features/labels becomes the decisive factor. The analysis applies to convolutional, PageRank-based, and attention models, which makes the reframing broadly applicable \cite{ayday2025gnnfail,chien2021gprgnn}. This shifts the question from \emph{which architecture is best} to \emph{when does graph structure provide aligned signal that a GNN can exploit?} This reframing also connects spatial and spectral views where many architectures can be described by their frequency response, so failures can be traced to misaligned signal frequencies rather than to a specific model family \cite{ayday2025gnnfail}. This reframing leads naturally to a spectral filter lens. % [Source: Paper Abstract + Sections 2--3]
 
-\subsection*{Signal-processing lens}
-In this view, GNN layers behave like filters in the graph spectral domain. The data signal is decomposed into graph frequencies, and a model's frequency response determines which parts of the signal are amplified or suppressed. This makes two concepts central: (i) the spectral distribution of the graph itself, and (ii) whether the target signal is concentrated in frequencies that a given model can preserve. The paper argues that failures often occur not because a model is weak in an abstract sense, but because the graph signal is misaligned with what the model can represent. % [Source: Paper Intro + Section 2]
+\paragraph*{Graph filter lens.}
+To make the reframing concrete, I adopt a spectral filter lens. Under this lens, GNN layers behave like filters in the graph spectral domain. The data signal is decomposed into graph frequencies, and a model's frequency response determines which parts of the signal are amplified or suppressed. This makes two concepts central: (i) the spectral distribution of the graph itself, and (ii) whether the target signal is concentrated in frequencies that a given model can preserve. The paper argues that failures often occur not because a model is weak in an abstract sense, but because the graph signal is misaligned with what the model can represent \cite{ayday2025gnnfail}. This view sets up the specific failure mechanisms the paper isolates. % [Source: Paper Intro + Section 2]
 
-\subsection*{Core failure mechanisms highlighted by the paper}
+\paragraph*{Failure Mechanisms.} Here are the core failure mechanisms that the paper highlights: 
 
-\textit{1) Misalignment.} Even shallow GNNs can fail if the adjacency structure, features, and targets are misaligned. The paper formalises this with a misalignment measure: when the target signal does not lie in the subspace captured by the GNN representation, generalisation error increases. This explains why a simple concatenation baseline can outperform convolution in some regimes. % [Source: Paper Section 4.1, Definition 4.1, Lemma 4.1, Figure 2]
+\textit{1) Misalignment.} Even shallow GNNs can fail if the adjacency structure, features, and targets are misaligned. The paper formalises this with a misalignment measure. When the target signal does not lie in the subspace captured by the GNN representation, generalisation error increases. The definition uses a projection onto the representation space, which makes the loss of signal geometrically explicit. This explains why a simple concatenation baseline can outperform convolution in some regimes \cite{ayday2025gnnfail}. % [Source: Paper Section 4.1, Definition 4.1, Lemma 4.1, Figure 2]
 
-\textit{2) Heterophily as high-frequency signal.} The paper connects homophily/heterophily to spectral properties: homophilic labels are low-frequency signals, while heterophilic labels are high-frequency. Convolutional GNNs are biased toward low-pass behavior, which makes them struggle when the label signal is high-frequency. This ties failures to the graph's spectrum rather than only to the model class. % [Source: Paper Section 4.2]
+\textit{2) Heterophily as high-frequency signal.} The paper connects homophily/heterophily to spectral properties: homophilic labels are low-frequency signals, while heterophilic labels are high-frequency. A homophily parameter is used to formalise this range, which allows the generalisation error to be traced as homophily changes. Convolutional GNNs are biased toward low-pass behaviour, which makes them struggle when the label signal is high-frequency. This ties failures to the graph's spectrum rather than only to the model class \cite{ayday2025gnnfail}. % [Source: Paper Section 4.2]
 
-\textit{3) Attention limitations under repeated eigenvalues.} For attention-based models, the paper shows a spectral limitation: when eigenvalues repeat, certain attention mechanisms cannot fully distinguish graph structure, revealing a structural blind spot even for flexible models. This again suggests that graph spectral properties are as important as model design. % [Source: Paper Section 4.3, Corollary 4.3, Figure 6]
+\textit{3) Attention limitations under repeated eigenvalues.} For attention-based models, the paper shows a spectral limitation. When eigenvalues repeat, certain attention mechanisms cannot fully distinguish graph structure, revealing a structural blind spot even for flexible models. The analysis predicts a gap between GAT and Specformer in this setting, and the paper validates it with a synthetic construction that increases eigenvalue multiplicity. This again suggests that graph spectral properties are as important as model design \cite{ayday2025gnnfail}. These mechanisms imply concrete empirical signatures, which the paper then evaluates on data. % [Source: Paper Section 4.3, Corollary 4.3, Figure 6]
 
-\subsection*{Empirical evidence in the paper}
-The paper uses real datasets to illustrate these mechanisms. In the misalignment analysis, convolution can lose to simple concatenation when the graph and features are poorly aligned, highlighting that graph structure is not universally beneficial. For heterophily, the paper ties poor performance to high-frequency label signals that are suppressed by common GNN filters. The empirical claims reinforce the message: failures are predictable once alignment and spectral structure are quantified. % [Source: Paper Section 4.1 Figure 2; Section 4.2/Appendix J]
+\paragraph*{Empirical evidence in the paper.}
+The paper uses real datasets to illustrate these mechanisms. In the misalignment analysis, convolution can lose to simple concatenation when the graph and features are poorly aligned, highlighting that graph structure is not universally beneficial. The study spans datasets such as Cora, CiteSeer, Wikipedia, Squirrel, and Chameleon, which helps to separate alignment effects from heterophily effects. For heterophily, the paper links poor performance to high-frequency label signals that are suppressed by common GNN filters and uses controlled perturbations of Cora to examine how accuracy changes as heterophilic edges are added. The empirical claims reinforce the conclusion that the failures are predictable once alignment and spectral structure are quantified \cite{ayday2025gnnfail}. This empirical picture leads directly to \textbf{why benchmarks can mislead} because standard benchmarks such as Cora and CiteSeer are biased toward alignment-friendly regimes, which lets GNNs appear strong in evaluation while still being fragile in settings with weaker alignment or heterophilic structure. The misalignment score is not necessarily high for heterophilic graphs, which implies that relying on a single benchmark property can hide failure modes. The broader implication is that failure is not an exception, and that rather it is the predictable outcome of misalignment between data and graph structure \cite{ayday2025gnnfail}. These observations motivate the backward looking conclusion that follows. % [Source: Paper Section 4.1 Figure 2; Section 4.2/Appendix J; Section 4.1 discussion after Figure 2]
 
-\textbf{Why benchmarks can mislead.} The paper also argues that standard benchmarks (e.g., Cora, CiteSeer) are biased toward alignment-friendly regimes. This means GNNs can appear strong in evaluation while still being fragile in settings with weaker alignment or heterophilic structure. The broader implication is that failure is not an exception; it is the predictable outcome of misalignment between data and graph structure. % [Source: Paper Section 4.1 discussion after Figure 2]
+\paragraph*{Backward-looking conclusion.}
+The historical focus on architectural fixes explains only part of the failure landscape. The paper's key contribution is to show that \emph{alignment and spectral structure are the controlling variables}. This reframes GNN failures from \emph{model design flaws} to \emph{data-model mismatch}, and it motivates a shift toward diagnostics that can be applied before training. This sets the stage for a forward-looking audit approach that makes the theory in the paper practical and actionable. % [Source: Ours (synthesis of paper insights)]
 
-\subsection*{Backward-looking synthesis}
-The historical focus on architectural fixes explains only part of the failure landscape. The paper's key contribution is to show that \emph{alignment and spectral structure are the controlling variables}. This reframes GNN failures from \emph{model design flaws} to \emph{data-model mismatch}, setting the stage for a forward-looking diagnostic approach. % [Source: Ours (synthesis of paper insights)]
-
-% ----------------------------
-% Forward-thinking (2 pages)
-% ----------------------------
 \section{Forward-thinking: Predictive Model Auditing}
 
-\subsection*{Proposal}
-A natural research direction is to operationalise the paper's insights as a \emph{pre-training diagnostic}: Predictive Model Auditing. The idea is to compute a failure risk score from graph-structural signals (e.g., homophily, spectral summaries, and feature-label alignment proxies) before any training occurs. This moves the field from post-hoc explanations toward pre-flight assessments of when a GNN is expected to generalise. % [Source: Ours (forward-looking proposal)]
+\paragraph*{Proposal}
+A natural research direction is to operationalise the paper's insights as a \emph{pre-training diagnostic}: Predictive Model Auditing. The idea is to compute a failure risk score from graph-structural signals (e.g., homophily, spectral summaries, and feature-label alignment proxies) before any training occurs. This moves the field from post-hoc explanations toward pre-flight assessments of when a GNN is expected to generalise. This proposal raises the question of what the audit should predict in practice. % [Source: Ours (forward-looking proposal)]
 
-\subsection*{What the audit predicts}
-The audit is not a single number that replaces training; rather, it is a set of warnings and expectations. If a graph exhibits low homophily and a feature-label signal dominated by high-frequency components, the audit would predict high risk for standard low-pass GNNs and suggest either alternative filters or preprocessing. Conversely, in strongly aligned regimes, the audit predicts that standard convolutional GNNs should perform reliably, which helps avoid unnecessary architectural complexity. % [Source: Ours (grounded by Paper Sections 4.1--4.2)]
+\paragraph*{What the audit predicts}
+The audit is not a single number that replaces training; rather, it is a set of warnings and expectations. If a graph exhibits low homophily and a feature-label signal dominated by high-frequency components, the audit would predict high risk for standard low-pass GNNs and suggest either alternative filters or preprocessing. Conversely, in strongly aligned regimes, the audit predicts that standard convolutional GNNs should perform reliably, which helps avoid unnecessary architectural complexity. This leads to a concrete pipeline for how the audit is run. % [Source: Ours (grounded by Paper Sections 4.1--4.2)]
 
-\subsection*{Audit pipeline}
+\paragraph*{Audit pipeline}
 \begin{enumerate}
   \item \textbf{Audit stage:} Compute structural signals from the graph and label distribution to estimate a failure risk score (e.g., inverse homophily as a proxy for high-frequency label signals).
   \item \textbf{Decision stage:} If risk is high, select architectures or preprocessing steps better aligned with the data (e.g., alternative filters, rewiring, or feature augmentation).
   \item \textbf{Validation stage:} Stress-test predictions on controlled graph families to verify that the risk score correlates with actual failure rates.
 \end{enumerate}
-% [Source: Ours]
+With the pipeline specified, I next motivate the experimental design choices used to validate it. % [Source: Ours]
 
-\subsection*{Experimental design choices}
-I include GCN, GraphSAGE, GAT, GPRGNN, and MLP to span the major model families that appear in practice. GCN represents a standard low pass convolutional baseline, GraphSAGE provides a different aggregation rule, GAT represents attention based architectures, GPRGNN adds a learned spectral response that can emphasize a wider range of frequencies, and MLP provides a feature only baseline. This set allows me to test whether the diagnostic separates graph aware models from a graph agnostic model across diverse architectures. % [Source: Ours]
+\paragraph*{Experimental design choices}
+The model set includes GCN, GraphSAGE, GAT, GPRGNN, and MLP to cover the main architectural families used in practice. GCN provides a low-pass convolutional baseline, GraphSAGE offers a different aggregation rule, GAT represents attention-based architectures, and GPRGNN introduces a learned spectral response that can adapt to broader frequency profiles \cite{kipf2017gcn,hamilton2017graphsage,velickovic2017gat,chien2021gprgnn}. MLP is included as a feature-only baseline so that the contribution of graph structure can be isolated. This selection allows the diagnostic to be tested across graph-aware and graph-agnostic models under comparable conditions. The stress suite uses synthetic families that expose controlled axes of variation. SBM with balanced and imbalanced communities provides direct control of homophily and class balance, LFR style graphs introduce more realistic community structure with tunable mixing \cite{lancichinetti2008benchmark}, and degree-skew graphs test robustness under heavy-tailed degree distributions. Together these families cover homophily control, community realism, and degree heterogeneity in a way that a single generator cannot. Squirrel is included as a real dataset because it is a widely used heterophily benchmark and it is discussed in the target paper \cite{ayday2025gnnfail} and introduced as a heterophily dataset in Geom-GCN \cite{pei2020geomgcn}. It provides a realistic setting where low-pass biases can fail, which makes it a direct test of the diagnostic beyond homophilic benchmarks such as Cora and CiteSeer. The audit score combines homophily, a feature-label alignment proxy, and a spectral summary such as lambda max. Homophily captures label smoothness, alignment measures how much label signal is represented in features, and the spectral term reflects how graph structure affects filtering behavior. Combining them turns the diagnostic into a multi-signal predictor rather than a restatement of homophily alone. These choices set up the empirical probes that follow. % [Source: Ours]
 
-I use a stress suite of synthetic families to test the diagnostic across controlled axes of variation. SBM with balanced and imbalanced communities provides direct control of homophily and class balance, LFR style graphs add more realistic community structure with tunable mixing, and degree skew graphs test robustness under heavy tailed degree distributions. These families cover homophily control, community realism, and degree heterogeneity in a way that a single generator cannot. % [Source: Ours]
+\paragraph*{Empirical probes supporting the audit idea}
+I ran a stress suite of experiments to test whether structural signals predict performance. The goal is not to maximize accuracy, but to test whether the audit signals hold across families rather than only within a single generator. I start with the synthetic stress suite and then move to alignment and real dataset checks. % [Source: Ours]
 
-I add Squirrel as a real dataset because it is a widely used heterophily benchmark and it is discussed in the target paper. It provides a realistic setting where low pass biases can fail, which makes it a direct test of the diagnostic beyond homophilic benchmarks like Cora and CiteSeer. % [Source: Ours]
+\textit{Synthetic stress suite.} Across SBM balanced and imbalanced, LFR, and degree skew graphs, accuracy increases with homophily for graph-aware models while the MLP baseline remains comparatively flat. Results for this experiment are presented in Figure \ref{fig:stress-risk}. The multi-signal risk score is strongly negatively correlated with test accuracy, for example about $\mathbf{-0.94}$ for GAT and $\mathbf{-0.66}$ for GCN across families, while MLP remains weakly correlated at about $\mathbf{-0.25}$. This supports the audit idea while also showing that better weighting of signals could further improve predictive strength. I then isolate feature alignment in a controlled sweep. % [Source: Ours (not in paper)]
 
-I define the audit score from homophily, a feature label alignment proxy, and a spectral summary such as lambda max. Homophily captures label smoothness, alignment measures how much label signal is represented in features, and the spectral term captures how the graph structure can affect filtering behavior. Combining them turns the diagnostic into a multi signal predictor rather than a restatement of homophily alone. % [Source: Ours]
+\begin{figure}[t]
+\centering
+\begin{minipage}[t]{0.32\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/fig_01_cell6_out1.png}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.32\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/fig_02_cell6_out2.png}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.32\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/fig_03_cell6_out3.png}
+\end{minipage}
+\caption{Stress suite results. Left to right: test accuracy versus homophily, generalization gap versus homophily, and test accuracy versus the multi-signal risk score. Lines connect points within each model.}
+\label{fig:stress-risk}
+\end{figure}
 
-\subsection*{Empirical probes supporting the audit idea}
-I ran minimal experiments to test whether structural signals predict performance. These are intentionally small-scale, designed to validate directionality rather than to maximize accuracy. % [Source: Ours]
+\textit{Alignment (feature-signal) sweep.} Holding graph structure fixed and varying how much label signal appears in node features, GAT and GCN remain high and stable, GraphSAGE and GPRGNN show mid-range performance, and the MLP baseline stays near chance. Results for this experiment are presented in Figure \ref{fig:alignment}. For example, GAT stays above about \textbf{0.92} across feature strengths, while MLP remains around \textbf{0.48} to \textbf{0.56}. The trend is not perfectly monotonic across feature strengths, but the overall pattern supports the misalignment hypothesis. I then examine real datasets to see if the same signals appear in practice. % [Source: Ours (not in paper)]
 
-\textit{Synthetic homophily sweep.} On synthetic SBM graphs, GNN accuracy increases with homophily, while an MLP baseline remains comparatively flat. A simple risk score (1 - homophily) correlates strongly and negatively with GNN accuracy, consistent with the audit hypothesis. In my runs, the negative correlation is strong across GNNs while the MLP baseline remains weakly correlated, which is exactly the diagnostic separation the audit should detect. % [Source: Ours (not in paper)]
+\textit{Real datasets.} On Cora and CiteSeer \cite{craven1998cora,giles1998citeseer}, which are more homophilic, GNNs consistently outperform MLP and GPRGNN performs best among the tested models. On Cora, GPRGNN reaches about \textbf{0.81} test accuracy while MLP is around \textbf{0.49}. On Squirrel, a heterophily benchmark with much lower homophily \cite{pei2020geomgcn}, overall accuracy drops and the ranking shifts, with GAT and GraphSAGE outperforming GCN. On Squirrel, GAT reaches about \textbf{0.47} while MLP is around \textbf{0.32}. Results for this experiment are presented in Figure \ref{fig:real-data} and Table \ref{tab:real-data} from the Appendix. This aligns with the paper's claim that benchmark success is linked to alignment-friendly regimes and highlights failure modes under heterophily \cite{ayday2025gnnfail}. The gap between graph-aware models and MLP is largest on Cora, smaller on CiteSeer, and smallest on Squirrel, which is consistent with the homophily ordering. The variance across seeds is modest, indicating the trend is stable rather than accidental. The ordering shift on Squirrel provides a concrete stress test for the audit, showing that model choice matters most when alignment is weak. This leads into the closing assessment and limitations. % [Source: Ours for results; Paper uses these datasets for different analyses]
 
-\textit{Alignment (feature-signal) sweep.} Holding graph structure fixed and varying how much label signal appears in node features, model performance improves as feature signal strength increases. This directly supports the misalignment hypothesis: weak feature-label alignment degrades generalisation even when graph structure is unchanged. Importantly, the effect is stronger for GNNs than for the MLP baseline, suggesting that graph structure does not compensate for poor feature-label alignment. % [Source: Ours (not in paper)]
+\begin{figure}[t]
+\centering
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/fig_04_cell8_out1.png}
+\captionof{figure}{Alignment sweep. Test accuracy versus feature-signal strength with graph structure held fixed.}
+\label{fig:alignment}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/fig_05_cell11_out2.png}
+\captionof{figure}{Real datasets. Homophily versus accuracy for Cora, CiteSeer, and Squirrel.}
+\label{fig:real-data}
+\end{minipage}
+\end{figure}
 
-\textit{Real datasets.} On Cora and CiteSeer, higher homophily corresponds to higher GNN accuracy. The multi-seed results below show consistent gains for GNNs over MLP, with better performance on the more homophilic dataset (Cora). These results align with the paper's claim that benchmark success is linked to alignment-friendly regimes. % [Source: Ours for results; Paper uses these datasets for different analyses]
 
-\subsection*{Interpretation of the real-data table}
-The gap between GNNs and MLP is larger on Cora than on CiteSeer, consistent with stronger alignment. The variance across seeds is modest, indicating the trend is stable rather than accidental. This provides a concrete anchor for the audit: it is not an abstract claim, but one that predicts observable differences on widely used benchmarks. % [Source: Ours]
+% [Source: Ours (multi-seed results from notebook)]
 
-\begin{center}
+\paragraph*{Closing and limitations.}
+These probes are not exhaustive, but they demonstrate the core mechanism that performance tracks alignment-related signals across multiple synthetic families and real datasets, including a heterophily benchmark. This supports the feasibility of a pre-training audit that predicts when GNNs are likely to fail, while also indicating that a next step is to expand the stress suite and calibrate a multi-signal risk score across broader graph properties. The audit should be explicit about what it captures, such as alignment and spectrum, and what it does not, such as label noise and task-specific complexity. The backward-looking story reframes failure as misalignment, and the forward-looking proposal makes that reframing actionable as a diagnostic that can be applied before training begins. % [Source: Ours]
+
+
+\section{Appendix}
+\paragraph*{Appendix 1. Real dataset results}
+\begin{table}[t]
+\centering
+\caption{Real dataset test accuracy mean and standard deviation across five seeds.}
+\label{tab:real-data}
 \begin{tabular}{llccc}
 \toprule
 Dataset & Model & Homophily & Test Acc (mean) & Std \\
 \midrule
+Cora & GPRGNN & 0.810 & 0.8050 & 0.0041 \\
 Cora & GCN & 0.810 & 0.7898 & 0.0102 \\
 Cora & GraphSAGE & 0.810 & 0.7664 & 0.0069 \\
 Cora & GAT & 0.810 & 0.7556 & 0.0258 \\
-Cora & MLP & 0.810 & 0.4930 & 0.0250 \\
+Cora & MLP & 0.810 & 0.4932 & 0.0247 \\
+CiteSeer & GPRGNN & 0.736 & 0.6434 & 0.0055 \\
+CiteSeer & GAT & 0.736 & 0.6380 & 0.0111 \\
 CiteSeer & GCN & 0.736 & 0.6340 & 0.0174 \\
 CiteSeer & GraphSAGE & 0.736 & 0.6334 & 0.0125 \\
-CiteSeer & GAT & 0.736 & 0.6380 & 0.0111 \\
 CiteSeer & MLP & 0.736 & 0.4806 & 0.0061 \\
+Squirrel & GAT & 0.222 & 0.4720 & 0.0293 \\
+Squirrel & GraphSAGE & 0.222 & 0.4507 & 0.0095 \\
+Squirrel & GCN & 0.222 & 0.3925 & 0.0082 \\
+Squirrel & GPRGNN & 0.222 & 0.3305 & 0.0065 \\
+Squirrel & MLP & 0.222 & 0.3228 & 0.0145 \\
 \bottomrule
 \end{tabular}
-\end{center}
-% [Source: Ours (multi-seed results from notebook)]
+\end{table}
 
-\subsection*{Why this is enough for a forward-looking claim}
-These probes are not exhaustive, but they demonstrate the core mechanism: performance tracks alignment-related signals across both synthetic and real graphs. This supports the feasibility of a pre-training audit that predicts when GNNs are likely to fail. % [Source: Ours]
-
-\subsection*{Roadmap and limitations}
-A next step is to build a standardized stress suite that varies homophily, degree regimes, and spectral properties, then calibrate a multi-signal risk score against observed failures. The audit should be transparent about what it captures (alignment and spectrum) and what it does not (label noise, task-specific complexity). The goal is not to replace training, but to avoid blind reliance on benchmarks that may hide failure modes. % [Source: Ours]
-
-\subsection*{Coherent closing}
-The backward-looking story reframes failure as misalignment; the forward-looking proposal makes that reframing actionable. Predictive model auditing is a direct bridge from theory to practice: it uses alignment and spectral signals to predict where GNNs will generalise and where they will fail, before expensive training begins. % [Source: Ours]
-
-\section{References}
-Ayday, N., Sabanayagam, M., \& Ghoshdastidar, D. (2025). \textit{Why Does Your Graph Neural Network Fail on Some Graphs? Insights from Exact Generalisation Error}.\newline
-Craven, M., et al. (1998). \textit{Cora}.\newline
-Giles, C. L., et al. (1998). \textit{CiteSeer}.\newline
+\bibliographystyle{plain}
+\bibliography{references}
 
 \end{document}
